@@ -41,23 +41,16 @@ fs.readdir(directoryPath, (err, files) => {
       return;
     }
 
-    // Check if there are new unplayed videos
-    const unplayedVideos = videoFiles.filter(video => !playedVideos.includes(video));
-
-    if (unplayedVideos.length === 0) {
-      console.log('No new videos available');
-      return;
-    }
-
     // Start playing the first unplayed video
-    const currentVideoFile = unplayedVideos[0];
-    console.log('Playing video:', currentVideoFile);
+    playVideo();
   });
 });
 
 app.use('/statics', express.static('CCTV_Capture'));
 
 app.get('/video', (req, res) => {
+  playVideo();
+
   if (playedVideos.length === videoFiles.length) {
     res.status(200).send('No new videos available');
     return;
@@ -109,14 +102,34 @@ app.get('/video', (req, res) => {
 
   // Mark the current video as played
   playedVideos.push(currentVideoFile);
+  updatePlayedVideosFile();
+});
 
-  // Append the played video to the text file
-  fs.appendFile(playedVideosPath, currentVideoFile + '\n', err => {
+function updatePlayedVideosFile() {
+  const playedVideosContent = playedVideos.join('\n');
+  fs.writeFile(playedVideosPath, playedVideosContent, 'utf8', err => {
     if (err) {
       console.error('Error writing played videos:', err);
     }
   });
-});
+}
+
+function playVideo() {
+  if (playedVideos.length === videoFiles.length) {
+    console.log('All videos have been played');
+    return;
+  }
+
+  const unplayedVideos = videoFiles.filter(video => !playedVideos.includes(video));
+
+  if (unplayedVideos.length === 0) {
+    console.log('No new videos available');
+    return;
+  }
+
+  const currentVideoFile = unplayedVideos[0];
+  console.log('Playing video:', currentVideoFile);
+}
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
